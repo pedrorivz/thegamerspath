@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Manual level entry on game detail page — add custom chapter/level names to any library game via an inline form
 - Bulk level import — paste multiple level names (one per line) into a textarea to add them all at once; toggle between single and bulk mode in the add-level form
+- Notes / journal per game — add timestamped notes to any library game; supports create, inline edit, and delete with animated list
+- Backup export — download full library (games, levels, notes) as a JSON file from the Profile page
+- Backup import — restore library from a JSON backup file via the Profile page; shows a confirmation sheet warning that the current library will be replaced
 
 ### Fixed
 

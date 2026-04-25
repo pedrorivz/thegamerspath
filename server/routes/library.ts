@@ -2,13 +2,22 @@ import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import db from '../db';
 import { requireAuth } from '../middleware/auth';
-import type { LibraryGame, LibraryLevel, AddGameBody } from '../types';
+import type { LibraryGame, LibraryLevel, AddGameBody, GameNote } from '../types';
 
 const router = Router();
 
 router.use(requireAuth);
 
-function formatGame(game: LibraryGame, levels: LibraryLevel[]) {
+function formatNote(n: GameNote) {
+  return {
+    id: n.id,
+    content: n.content,
+    createdAt: n.created_at,
+    updatedAt: n.updated_at,
+  };
+}
+
+function formatGame(game: LibraryGame, levels: LibraryLevel[], notes: GameNote[] = []) {
   return {
     id: game.id,
     speedrunId: game.speedrun_id,
@@ -25,6 +34,7 @@ function formatGame(game: LibraryGame, levels: LibraryLevel[]) {
       completed: l.completed === 1,
       completedAt: l.completed_at,
     })),
+    notes: notes.map(formatNote),
     addedAt: game.added_at,
   };
 }
@@ -41,7 +51,10 @@ router.get('/', (req, res) => {
     const levels = db
       .prepare('SELECT * FROM library_levels WHERE game_id = ?')
       .all(game.id) as LibraryLevel[];
-    return formatGame(game, levels);
+    const notes = db
+      .prepare('SELECT * FROM game_notes WHERE game_id = ? ORDER BY created_at DESC')
+      .all(game.id) as GameNote[];
+    return formatGame(game, levels, notes);
   });
 
   res.json({ data: result });
@@ -99,7 +112,7 @@ router.post('/', (req, res) => {
   const game = db.prepare('SELECT * FROM library_games WHERE id = ?').get(gameId) as LibraryGame;
   const levels = db.prepare('SELECT * FROM library_levels WHERE game_id = ?').all(gameId) as LibraryLevel[];
 
-  res.status(201).json({ data: formatGame(game, levels) });
+  res.status(201).json({ data: formatGame(game, levels, []) });
 });
 
 // DELETE /api/library/:gameId
@@ -213,6 +226,94 @@ router.post('/:gameId/levels', (req, res) => {
       completedAt: null,
     },
   });
+});
+
+// POST /api/library/:gameId/notes
+router.post('/:gameId/notes', (req, res) => {
+  const userId = req.user!.userId;
+  const { gameId } = req.params;
+  const { content } = req.body as { content: string };
+
+  if (!content || !content.trim()) {
+    res.status(400).json({ error: 'Conteúdo da nota é obrigatório' });
+    return;
+  }
+
+  const game = db
+    .prepare('SELECT id FROM library_games WHERE id = ? AND user_id = ?')
+    .get(gameId, userId);
+  if (!game) {
+    res.status(404).json({ error: 'Jogo não encontrado' });
+    return;
+  }
+
+  const noteId = randomUUID();
+  db.prepare(
+    'INSERT INTO game_notes (id, game_id, content) VALUES (?, ?, ?)'
+  ).run(noteId, gameId, content.trim());
+
+  const note = db.prepare('SELECT * FROM game_notes WHERE id = ?').get(noteId) as GameNote;
+  res.status(201).json({ data: formatNote(note) });
+});
+
+// PATCH /api/library/:gameId/notes/:noteId
+router.patch('/:gameId/notes/:noteId', (req, res) => {
+  const userId = req.user!.userId;
+  const { gameId, noteId } = req.params;
+  const { content } = req.body as { content: string };
+
+  if (!content || !content.trim()) {
+    res.status(400).json({ error: 'Conteúdo da nota é obrigatório' });
+    return;
+  }
+
+  const game = db
+    .prepare('SELECT id FROM library_games WHERE id = ? AND user_id = ?')
+    .get(gameId, userId);
+  if (!game) {
+    res.status(404).json({ error: 'Jogo não encontrado' });
+    return;
+  }
+
+  const note = db
+    .prepare('SELECT id FROM game_notes WHERE id = ? AND game_id = ?')
+    .get(noteId, gameId);
+  if (!note) {
+    res.status(404).json({ error: 'Nota não encontrada' });
+    return;
+  }
+
+  db.prepare(
+    "UPDATE game_notes SET content = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(content.trim(), noteId);
+
+  const updated = db.prepare('SELECT * FROM game_notes WHERE id = ?').get(noteId) as GameNote;
+  res.json({ data: formatNote(updated) });
+});
+
+// DELETE /api/library/:gameId/notes/:noteId
+router.delete('/:gameId/notes/:noteId', (req, res) => {
+  const userId = req.user!.userId;
+  const { gameId, noteId } = req.params;
+
+  const game = db
+    .prepare('SELECT id FROM library_games WHERE id = ? AND user_id = ?')
+    .get(gameId, userId);
+  if (!game) {
+    res.status(404).json({ error: 'Jogo não encontrado' });
+    return;
+  }
+
+  const note = db
+    .prepare('SELECT id FROM game_notes WHERE id = ? AND game_id = ?')
+    .get(noteId, gameId);
+  if (!note) {
+    res.status(404).json({ error: 'Nota não encontrada' });
+    return;
+  }
+
+  db.prepare('DELETE FROM game_notes WHERE id = ?').run(noteId);
+  res.status(204).send();
 });
 
 // POST /api/library/:gameId/levels/bulk  — add multiple levels at once

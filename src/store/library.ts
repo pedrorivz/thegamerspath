@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as api from '../api/client';
-import type { LibraryGame, LibraryLevel } from '../types/speedrun';
+import type { LibraryGame, LibraryLevel, LibraryNote } from '../types/speedrun';
 
 interface LibraryState {
   games: LibraryGame[];
@@ -12,6 +12,9 @@ interface LibraryState {
   toggleLevel: (gameId: string, levelId: string) => Promise<void>;
   addLevel: (gameId: string, name: string) => Promise<void>;
   addLevels: (gameId: string, names: string[]) => Promise<void>;
+  addNote: (gameId: string, content: string) => Promise<void>;
+  updateNote: (gameId: string, noteId: string, content: string) => Promise<void>;
+  deleteNote: (gameId: string, noteId: string) => Promise<void>;
   clear: () => void;
   hasGame: (id: string) => boolean;
   getGame: (id: string) => LibraryGame | undefined;
@@ -115,6 +118,49 @@ export const useLibrary = create<LibraryState>((set, get) => ({
             }
       ),
     }));
+  },
+
+  addNote: async (gameId, content) => {
+    const note = await api.addNote(gameId, content);
+    set(s => ({
+      games: s.games.map(g =>
+        g.id !== gameId
+          ? g
+          : { ...g, notes: [{ id: note.id, content: note.content, createdAt: note.createdAt, updatedAt: note.updatedAt }, ...g.notes] }
+      ),
+    }));
+  },
+
+  updateNote: async (gameId, noteId, content) => {
+    const note = await api.updateNote(gameId, noteId, content);
+    set(s => ({
+      games: s.games.map(g =>
+        g.id !== gameId
+          ? g
+          : {
+              ...g,
+              notes: g.notes.map((n: LibraryNote) =>
+                n.id === noteId ? { ...n, content: note.content, updatedAt: note.updatedAt } : n
+              ),
+            }
+      ),
+    }));
+  },
+
+  deleteNote: async (gameId, noteId) => {
+    set(s => ({
+      games: s.games.map(g =>
+        g.id !== gameId
+          ? g
+          : { ...g, notes: g.notes.filter((n: LibraryNote) => n.id !== noteId) }
+      ),
+    }));
+    try {
+      await api.deleteNote(gameId, noteId);
+    } catch {
+      get().sync();
+      throw new Error('Não foi possível remover a nota');
+    }
   },
 
   clear: () => set({ games: [], syncError: null }),

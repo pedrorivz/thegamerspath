@@ -45,7 +45,7 @@ export function GameDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels } = useLibrary();
+  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels, addNote, updateNote, deleteNote } = useLibrary();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
 
@@ -56,6 +56,12 @@ export function GameDetail() {
   const [addingLevel, setAddingLevel] = useState(false);
   const addLevelInputRef = useRef<HTMLInputElement>(null);
   const bulkTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -159,6 +165,49 @@ export function GameDetail() {
   const switchToSingle = () => {
     setBulkMode(false);
     setTimeout(() => addLevelInputRef.current?.focus(), 50);
+  };
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!libraryEntry || !newNoteContent.trim()) return;
+    setSavingNote(true);
+    try {
+      await addNote(libraryEntry.id, newNoteContent.trim());
+      setNewNoteContent('');
+      setShowNoteForm(false);
+    } catch {
+      toast.error('Não foi possível salvar a nota');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleUpdateNote = async (noteId: string) => {
+    if (!libraryEntry || !editingNoteContent.trim()) return;
+    setSavingNote(true);
+    try {
+      await updateNote(libraryEntry.id, noteId, editingNoteContent.trim());
+      setEditingNoteId(null);
+      setEditingNoteContent('');
+    } catch {
+      toast.error('Não foi possível atualizar a nota');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!libraryEntry) return;
+    try {
+      await deleteNote(libraryEntry.id, noteId);
+    } catch {
+      toast.error('Não foi possível remover a nota');
+    }
+  };
+
+  const startEditNote = (noteId: string, content: string) => {
+    setEditingNoteId(noteId);
+    setEditingNoteContent(content);
   };
 
   if (loading) {
@@ -427,6 +476,139 @@ export function GameDetail() {
           </div>
         )}
       </div>
+
+      {inLibrary && libraryEntry && (
+        <>
+          <div className="h-px bg-slate-800 mx-4 mt-2" />
+
+          <div className="px-4 pt-5 pb-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-slate-200">Notas</h2>
+              {!showNoteForm && (
+                <button
+                  onClick={() => { setShowNoteForm(true); setEditingNoteId(null); }}
+                  className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                >
+                  <PlusIcon /> Nova nota
+                </button>
+              )}
+            </div>
+
+            <AnimatePresence initial={false}>
+              {showNoteForm && (
+                <motion.form
+                  key="note-form"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.15 }}
+                  onSubmit={handleAddNote}
+                  className="mb-4"
+                >
+                  <textarea
+                    value={newNoteContent}
+                    onChange={e => setNewNoteContent(e.target.value)}
+                    placeholder="Escreva sua nota..."
+                    rows={4}
+                    autoFocus
+                    className="w-full bg-[#1a1a2e] border border-violet-900/30 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors resize-none"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="submit"
+                      disabled={!newNoteContent.trim() || savingNote}
+                      className="flex-1 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {savingNote
+                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                        : 'Salvar nota'
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowNoteForm(false); setNewNoteContent(''); }}
+                      className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <XIcon />
+                    </button>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {libraryEntry.notes.length === 0 && !showNoteForm && (
+              <p className="text-sm text-slate-600 text-center py-4">Nenhuma nota ainda.</p>
+            )}
+
+            <div className="space-y-3">
+              <AnimatePresence initial={false}>
+                {libraryEntry.notes.map(note => (
+                  <motion.div
+                    key={note.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-[#1a1a2e] border border-slate-800 rounded-xl p-4"
+                  >
+                    {editingNoteId === note.id ? (
+                      <div>
+                        <textarea
+                          value={editingNoteContent}
+                          onChange={e => setEditingNoteContent(e.target.value)}
+                          rows={4}
+                          autoFocus
+                          className="w-full bg-[#0f0f1a] border border-violet-900/30 rounded-xl px-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors resize-none mb-2"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateNote(note.id)}
+                            disabled={!editingNoteContent.trim() || savingNote}
+                            className="flex-1 py-2 rounded-xl bg-violet-700 text-white text-xs font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
+                          >
+                            {savingNote ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Salvar'}
+                          </button>
+                          <button
+                            onClick={() => { setEditingNoteId(null); setEditingNoteContent(''); }}
+                            className="px-3 py-2 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                          >
+                            <XIcon />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800/60">
+                          <span className="text-xs text-slate-600">
+                            {new Date(note.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {note.updatedAt !== note.createdAt && ' · editado'}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditNote(note.id, note.content)}
+                              className="text-xs text-slate-500 hover:text-violet-400 transition-colors px-2 py-1"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="text-xs text-slate-500 hover:text-rose-400 transition-colors px-2 py-1"
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </>
+      )}
 
       <AnimatePresence>
         {showConfirm && (

@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import authRouter from './routes/auth';
 import libraryRouter from './routes/library';
 import { createGamesRouter } from './routes/games';
+import backupRouter from './routes/backup';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -35,6 +36,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/library', libraryRouter);
 app.use('/api/games', createGamesRouter(redis));
+app.use('/api/backup', backupRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
