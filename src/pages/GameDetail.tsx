@@ -45,14 +45,17 @@ export function GameDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel } = useLibrary();
+  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels } = useLibrary();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
 
   const [showAddLevel, setShowAddLevel] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
   const [newLevelName, setNewLevelName] = useState('');
+  const [bulkText, setBulkText] = useState('');
   const [addingLevel, setAddingLevel] = useState(false);
   const addLevelInputRef = useRef<HTMLInputElement>(null);
+  const bulkTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -115,14 +118,47 @@ export function GameDetail() {
     }
   };
 
+  const handleAddLevelsBulk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!libraryEntry) return;
+    const names = bulkText
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    if (names.length === 0) return;
+    setAddingLevel(true);
+    try {
+      await addLevels(libraryEntry.id, names);
+      toast.success(`${names.length} fase${names.length > 1 ? 's' : ''} adicionada${names.length > 1 ? 's' : ''}`);
+      closeAddLevel();
+    } catch {
+      toast.error('Não foi possível adicionar as fases');
+    } finally {
+      setAddingLevel(false);
+    }
+  };
+
   const openAddLevel = () => {
     setShowAddLevel(true);
+    setBulkMode(false);
     setTimeout(() => addLevelInputRef.current?.focus(), 50);
   };
 
   const closeAddLevel = () => {
     setShowAddLevel(false);
+    setBulkMode(false);
     setNewLevelName('');
+    setBulkText('');
+  };
+
+  const switchToBulk = () => {
+    setBulkMode(true);
+    setTimeout(() => bulkTextareaRef.current?.focus(), 50);
+  };
+
+  const switchToSingle = () => {
+    setBulkMode(false);
+    setTimeout(() => addLevelInputRef.current?.focus(), 50);
   };
 
   if (loading) {
@@ -271,6 +307,56 @@ export function GameDetail() {
                   >
                     <PlusIcon /> Adicionar fase manualmente
                   </motion.button>
+                ) : bulkMode ? (
+                  <motion.form
+                    key="bulk-form"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.15 }}
+                    onSubmit={handleAddLevelsBulk}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs text-slate-500">Uma fase por linha</span>
+                      <button
+                        type="button"
+                        onClick={switchToSingle}
+                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                      >
+                        Adicionar uma só
+                      </button>
+                    </div>
+                    <textarea
+                      ref={bulkTextareaRef}
+                      value={bulkText}
+                      onChange={e => setBulkText(e.target.value)}
+                      placeholder={'Capítulo 1\nCapítulo 2\nCapítulo 3'}
+                      rows={5}
+                      className="w-full bg-[#1a1a2e] border border-violet-900/30 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={bulkText.split('\n').filter(l => l.trim()).length === 0 || addingLevel}
+                        className="flex-1 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {addingLevel ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                        ) : (() => {
+                          const count = bulkText.split('\n').filter(l => l.trim()).length;
+                          return count > 0 ? `Importar ${count} fase${count > 1 ? 's' : ''}` : 'Importar';
+                        })()}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeAddLevel}
+                        className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                      >
+                        <XIcon />
+                      </button>
+                    </div>
+                  </motion.form>
                 ) : (
                   <motion.form
                     key="add-form"
@@ -279,34 +365,45 @@ export function GameDetail() {
                     exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.15 }}
                     onSubmit={handleAddLevel}
-                    className="flex gap-2"
+                    className="flex flex-col gap-2"
                   >
-                    <input
-                      ref={addLevelInputRef}
-                      type="text"
-                      value={newLevelName}
-                      onChange={e => setNewLevelName(e.target.value)}
-                      placeholder="Nome da fase..."
-                      maxLength={100}
-                      className="flex-1 bg-[#1a1a2e] border border-violet-900/30 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newLevelName.trim() || addingLevel}
-                      className="px-4 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      {addingLevel
-                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        : 'Salvar'
-                      }
-                    </button>
-                    <button
-                      type="button"
-                      onClick={closeAddLevel}
-                      className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-                    >
-                      <XIcon />
-                    </button>
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={switchToBulk}
+                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                      >
+                        Importar várias
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        ref={addLevelInputRef}
+                        type="text"
+                        value={newLevelName}
+                        onChange={e => setNewLevelName(e.target.value)}
+                        placeholder="Nome da fase..."
+                        maxLength={100}
+                        className="flex-1 bg-[#1a1a2e] border border-violet-900/30 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newLevelName.trim() || addingLevel}
+                        className="px-4 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {addingLevel
+                          ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          : 'Salvar'
+                        }
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeAddLevel}
+                        className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                      >
+                        <XIcon />
+                      </button>
+                    </div>
                   </motion.form>
                 )}
               </AnimatePresence>
