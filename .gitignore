@@ -31,3 +31,6 @@ Thumbs.db
 # ─── TypeScript compiled output ───────────────────────────────────────────────
 server/dist/
 *.tsbuildinfo
+
+# ─── Red team tooling ─────────────────────────────────────────────────────────
+redteam/

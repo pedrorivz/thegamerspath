@@ -1,0 +1,32 @@
+# Secrets
+.env
+server/.env
+
+# Dependencies (rebuilt in image)
+node_modules/
+server/node_modules/
+
+# Build output (rebuilt in image)
+dist/
+server/dist/
+
+# Database / runtime data
+server/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Dev tooling
+.claude/
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
