@@ -1,73 +1,158 @@
-# React + TypeScript + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# 🎮 The Gamer's Path
 
-Currently, two official plugins are available:
+**Track your journey through single-player games — chapter by chapter.**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-violet.svg)](LICENSE)
+[![Docker Image](https://img.shields.io/badge/ghcr.io-pedrorivz%2Fthegamerspath-blue?logo=github)](https://ghcr.io/pedrorivz/thegamerspath)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)](https://typescriptlang.org)
+[![Self-Hosted](https://img.shields.io/badge/self--hosted-ready-brightgreen)](https://github.com/pedrorivz/thegamerspath)
 
-## React Compiler
+</div>
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+The Gamer's Path (TGP) is a mobile-first web app to track your progress through single-player games. Search any game using the [Speedrun.com API](https://www.speedrun.com/api), add it to your personal library, and mark chapters/levels as you complete them.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Designed to be **self-hosted**, **open source**, and fast on mobile.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## ✨ Features
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Game search** — smart matching with partial names, abbreviations (`tloz`, `smb`), and underscored titles, powered by Speedrun.com API
+- **Game library** — add games with cover art, platform, genre, and chapter list fetched automatically
+- **Level/chapter tracker** — tap to mark levels complete with smooth animated progress bars
+- **Celebratory feedback** — confetti burst + haptic vibration when you complete a game
+- **Per-user accounts** — JWT authentication, each user has their own private library
+- **Persistent storage** — SQLite for data, Redis for search caching (Redis is optional)
+- **Single container** — `docker compose up` and you're done
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS v4 |
+| Animations | Framer Motion, CSS keyframes, Canvas confetti |
+| State | Zustand |
+| Routing | React Router v7 |
+| Backend | Node.js 20, Express 4 |
+| Database | SQLite via better-sqlite3 |
+| Cache | Redis via ioredis (optional) |
+| Auth | JWT + bcrypt |
+| Container | Docker, Docker Compose |
+| Game data | [Speedrun.com public API v1](https://github.com/speedruncomorg/api) |
+
+## 🚀 Quick Start
+
+### Docker (recommended)
+
+```bash
+git clone https://github.com/pedrorivz/thegamerspath.git
+cd thegamerspath
+
+# Set a strong JWT secret
+cp .env.example .env
+nano .env  # edit JWT_SECRET
+
+docker compose up -d
+# Open http://localhost:3002
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Requires **Node.js 20+**.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Install all dependencies
+npm install && cd server && npm install && cd ..
+
+# Start frontend (port 5174) + backend (port 3002) together
+npm run dev:all
 ```
+
+The Vite dev server proxies `/api/*` to Express automatically — no CORS config needed.
+
+## ⚙️ Configuration
+
+All settings via environment variables. Copy `.env.example` to `.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3002` | HTTP port |
+| `JWT_SECRET` | — | **Required in production.** Sign JWT tokens. |
+| `REDIS_URL` | *(unset)* | Redis URL. Cache is disabled if not set. |
+| `DATA_DIR` | `./server/data` | Where SQLite database file is stored |
+| `NODE_ENV` | `development` | Set to `production` to serve frontend + disable CORS |
+
+## 🐳 Docker Image
+
+```bash
+docker pull ghcr.io/pedrorivz/thegamerspath:latest
+```
+
+Available tags: `latest`, `1.0.0`
+
+## 📡 API Reference
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/register` | — | Create account |
+| `POST` | `/api/auth/login` | — | Get JWT token |
+| `GET` | `/api/auth/me` | ✓ | Validate current token |
+| `GET` | `/api/library` | ✓ | List all saved games |
+| `POST` | `/api/library` | ✓ | Add a game |
+| `DELETE` | `/api/library/:id` | ✓ | Remove a game |
+| `PATCH` | `/api/library/:id/level` | ✓ | Toggle level completion |
+| `GET` | `/api/games/search?q=` | — | Search games (Redis-cached 1h) |
+| `GET` | `/api/games/:id` | — | Game detail (Redis-cached 24h) |
+| `GET` | `/api/health` | — | Health check + Redis status |
+
+## 🗂 Project Structure
+
+```
+thegamerspath/
+├── src/                    # React frontend (Vite)
+│   ├── api/                # HTTP client + Speedrun.com helpers
+│   ├── components/         # Reusable UI components
+│   ├── hooks/              # Auth Zustand store
+│   ├── pages/              # Route pages (lazy-loaded)
+│   ├── store/              # Library Zustand store
+│   └── types/              # Shared TypeScript interfaces
+├── server/                 # Express backend
+│   ├── routes/             # /auth, /library, /games
+│   ├── middleware/         # JWT requireAuth guard
+│   ├── db.ts               # SQLite + WAL + schema migrations
+│   ├── auth.ts             # JWT sign/verify
+│   └── server.ts           # Express app entry point
+├── Dockerfile              # Multi-stage: frontend build → runtime
+├── docker-compose.yml      # Services: web + redis + volumes
+├── Makefile                # Shortcuts: make up, make dev-all, etc.
+└── .env.example            # Environment variable template
+```
+
+## 🤝 Contributing
+
+Contributions are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+Quick version:
+1. Fork → branch → change → PR
+2. Run `npm run build` and `npx tsc --noEmit` before submitting
+3. Keep PRs focused — one concern per PR
+
+## 🗺 Roadmap
+
+Open to contributions on any of these:
+
+- [ ] Manual game entry (games not in Speedrun.com)
+- [ ] Notes / journal per game
+- [ ] Import/export library as JSON
+- [ ] Backlog / wishlist list type
+- [ ] Statistics page (completion rate, streaks)
+- [ ] Dark / light theme toggle
+- [ ] Internationalization (i18n)
+
+Have an idea? [Open a feature request](https://github.com/pedrorivz/thegamerspath/issues/new?template=feature_request.yml).
+
+## 📄 License
+
+[MIT](LICENSE) — free to use, fork, and self-host.
