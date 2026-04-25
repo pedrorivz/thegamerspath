@@ -11,6 +11,7 @@ interface LibraryState {
   removeGame: (id: string) => Promise<void>;
   toggleLevel: (gameId: string, levelId: string) => Promise<void>;
   addLevel: (gameId: string, name: string) => Promise<void>;
+  addLevels: (gameId: string, names: string[]) => Promise<void>;
   clear: () => void;
   hasGame: (id: string) => boolean;
   getGame: (id: string) => LibraryGame | undefined;
@@ -95,6 +96,23 @@ export const useLibrary = create<LibraryState>((set, get) => ({
         g.id !== gameId
           ? g
           : { ...g, levels: [...g.levels, { id: level.id, name: level.name, completed: false }] }
+      ),
+    }));
+  },
+
+  addLevels: async (gameId, names) => {
+    const levels = await api.addLevels(gameId, names);
+    set(s => ({
+      games: s.games.map(g =>
+        g.id !== gameId
+          ? g
+          : {
+              ...g,
+              levels: [
+                ...g.levels,
+                ...levels.map(l => ({ id: l.id, name: l.name, completed: false })),
+              ],
+            }
       ),
     }));
   },

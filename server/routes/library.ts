@@ -215,4 +215,63 @@ router.post('/:gameId/levels', (req, res) => {
   });
 });
 
+// POST /api/library/:gameId/levels/bulk  — add multiple levels at once
+router.post('/:gameId/levels/bulk', (req, res) => {
+  const userId = req.user!.userId;
+  const { gameId } = req.params;
+  const { names } = req.body as { names: unknown };
+
+  if (!Array.isArray(names) || names.length === 0) {
+    res.status(400).json({ error: 'names deve ser um array não vazio' });
+    return;
+  }
+
+  const trimmed = (names as unknown[])
+    .filter((n): n is string => typeof n === 'string')
+    .map(n => n.trim())
+    .filter(n => n.length > 0 && n.length <= 100);
+
+  if (trimmed.length === 0) {
+    res.status(400).json({ error: 'Nenhum nome de fase válido fornecido' });
+    return;
+  }
+
+  const game = db
+    .prepare('SELECT id FROM library_games WHERE id = ? AND user_id = ?')
+    .get(gameId, userId);
+
+  if (!game) {
+    res.status(404).json({ error: 'Jogo não encontrado' });
+    return;
+  }
+
+  const insertLevel = db.prepare(
+    'INSERT INTO library_levels (id, game_id, speedrun_level_id, name) VALUES (?, ?, ?, ?)'
+  );
+
+  const insertAll = db.transaction(() => {
+    return trimmed.map(name => {
+      const levelId = randomUUID();
+      insertLevel.run(levelId, gameId, levelId, name);
+      return levelId;
+    });
+  });
+
+  const ids = insertAll() as string[];
+
+  const levels = ids.map(id =>
+    db.prepare('SELECT * FROM library_levels WHERE id = ?').get(id) as LibraryLevel
+  );
+
+  res.status(201).json({
+    data: levels.map(l => ({
+      id: l.id,
+      speedrunLevelId: l.speedrun_level_id,
+      name: l.name,
+      completed: false,
+      completedAt: null,
+    })),
+  });
+});
+
 export default router;

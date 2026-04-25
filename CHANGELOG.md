@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Manual level entry on game detail page — add custom chapter/level names to any library game via an inline form
+- Bulk level import — paste multiple level names (one per line) into a textarea to add them all at once; toggle between single and bulk mode in the add-level form
 
 ### Fixed
 
