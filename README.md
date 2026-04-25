@@ -66,6 +66,9 @@ Requires **Node.js 20+**.
 # Install all dependencies
 npm install && cd server && npm install && cd ..
 
+# Configure the backend (sets PORT=3002 to match the Vite proxy)
+cp server/.env.example server/.env
+
 # Start frontend (port 5174) + backend (port 3002) together
 npm run dev:all
 ```
@@ -78,7 +81,7 @@ All settings via environment variables. Copy `.env.example` to `.env`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `3002` | HTTP port |
+| `PORT` | `3001` | HTTP port (set to `3002` in Docker and `server/.env.example`) |
 | `JWT_SECRET` | — | **Required in production.** Sign JWT tokens. |
 | `REDIS_URL` | *(unset)* | Redis URL. Cache is disabled if not set. |
 | `DATA_DIR` | `./server/data` | Where SQLite database file is stored |
@@ -127,7 +130,8 @@ thegamerspath/
 ├── Dockerfile              # Multi-stage: frontend build → runtime
 ├── docker-compose.yml      # Services: web + redis + volumes
 ├── Makefile                # Shortcuts: make up, make dev-all, etc.
-└── .env.example            # Environment variable template
+├── .env.example            # Docker Compose environment template
+└── server/.env.example     # Local development environment template
 ```
 
 ## 🤝 Contributing
