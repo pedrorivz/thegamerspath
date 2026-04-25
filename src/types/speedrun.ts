@@ -75,6 +75,7 @@ export interface LibraryGame {
   platforms: string[];
   genres: string[];
   levels: LibraryLevel[];
+  notes: LibraryNote[];
   addedAt: number;
 }
 
@@ -82,4 +83,11 @@ export interface LibraryLevel {
   id: string;
   name: string;
   completed: boolean;
+}
+
+export interface LibraryNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
 }

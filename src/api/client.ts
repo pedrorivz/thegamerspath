@@ -18,6 +18,13 @@ export interface BackendLevel {
   completedAt: string | null;
 }
 
+export interface BackendNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BackendGame {
   id: string;
   speedrunId: string;
@@ -28,6 +35,7 @@ export interface BackendGame {
   platforms: string[];
   genres: string[];
   levels: BackendLevel[];
+  notes: BackendNote[];
   addedAt: string;
 }
 
@@ -153,6 +161,45 @@ export async function getGameById(id: string): Promise<unknown> {
   return (res as { data: unknown }).data ?? res;
 }
 
+// Note endpoints
+export async function addNote(gameId: string, content: string): Promise<BackendNote> {
+  const res = await request<{ data: BackendNote }>(`/library/${gameId}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+  return res.data;
+}
+
+export async function updateNote(gameId: string, noteId: string, content: string): Promise<BackendNote> {
+  const res = await request<{ data: BackendNote }>(`/library/${gameId}/notes/${noteId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });
+  return res.data;
+}
+
+export async function deleteNote(gameId: string, noteId: string): Promise<void> {
+  await request(`/library/${gameId}/notes/${noteId}`, { method: 'DELETE' });
+}
+
+// Backup endpoints
+export async function exportBackup(): Promise<Blob> {
+  const token = localStorage.getItem('tgp-token');
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch('/api/backup/export', { headers });
+  if (!res.ok) throw new APIError(res.status, 'Falha ao exportar backup');
+  return res.blob();
+}
+
+export async function importBackup(data: unknown): Promise<{ imported: number }> {
+  const res = await request<{ data: { imported: number } }>('/backup/import', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
 // Convert backend game to LibraryGame shape used by Zustand store
 export function backendToLibrary(bg: BackendGame): LibraryGame {
   return {
@@ -168,6 +215,12 @@ export function backendToLibrary(bg: BackendGame): LibraryGame {
       id: l.id,
       name: l.name,
       completed: l.completed,
+    })),
+    notes: (bg.notes ?? []).map(n => ({
+      id: n.id,
+      content: n.content,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
     })),
     addedAt: new Date(bg.addedAt).getTime(),
   };

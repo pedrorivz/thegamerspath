@@ -38,6 +38,14 @@ export interface AddGameBody {
   levels: { id: string; name: string }[];
 }
 
+export interface GameNote {
+  id: string;
+  game_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AuthRequest {
   email: string;
   password: string;

@@ -45,8 +45,18 @@ db.exec(`
     FOREIGN KEY (game_id) REFERENCES library_games(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS game_notes (
+    id TEXT PRIMARY KEY,
+    game_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (game_id) REFERENCES library_games(id) ON DELETE CASCADE
+  );
+
   CREATE INDEX IF NOT EXISTS idx_library_games_user_id ON library_games(user_id);
   CREATE INDEX IF NOT EXISTS idx_library_levels_game_id ON library_levels(game_id);
+  CREATE INDEX IF NOT EXISTS idx_game_notes_game_id ON game_notes(game_id);
 `);
 
 export default db;
