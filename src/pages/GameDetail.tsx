@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCoverUrl, getPlatformNames, getGenreNames, getLevels } from '../api/speedrun';
@@ -29,6 +29,12 @@ const TrashIcon = () => (
     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
   </svg>
 );
+const XIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 
 export function GameDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,10 +45,14 @@ export function GameDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  const { addGame, removeGame, hasGame, getGame: getLibraryGame } = useLibrary();
-  // hasGame/getGame check both id (backend UUID) and speedrunId
+  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel } = useLibrary();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
+
+  const [showAddLevel, setShowAddLevel] = useState(false);
+  const [newLevelName, setNewLevelName] = useState('');
+  const [addingLevel, setAddingLevel] = useState(false);
+  const addLevelInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -87,6 +97,32 @@ export function GameDetail() {
       setActionError('Erro ao remover jogo');
       toast.error('Não foi possível remover o jogo');
     }
+  };
+
+  const handleAddLevel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!libraryEntry || !newLevelName.trim()) return;
+    setAddingLevel(true);
+    try {
+      await addLevel(libraryEntry.id, newLevelName.trim());
+      toast.success(`Fase "${newLevelName.trim()}" adicionada`);
+      setNewLevelName('');
+      addLevelInputRef.current?.focus();
+    } catch {
+      toast.error('Não foi possível adicionar a fase');
+    } finally {
+      setAddingLevel(false);
+    }
+  };
+
+  const openAddLevel = () => {
+    setShowAddLevel(true);
+    setTimeout(() => addLevelInputRef.current?.focus(), 50);
+  };
+
+  const closeAddLevel = () => {
+    setShowAddLevel(false);
+    setNewLevelName('');
   };
 
   if (loading) {
@@ -219,7 +255,63 @@ export function GameDetail() {
         </h2>
 
         {inLibrary ? (
-          <LevelTracker gameId={libraryEntry!.id} levels={levels} />
+          <>
+            <LevelTracker gameId={libraryEntry!.id} levels={levels} />
+
+            <div className="mt-4">
+              <AnimatePresence mode="wait">
+                {!showAddLevel ? (
+                  <motion.button
+                    key="add-btn"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={openAddLevel}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-700 text-slate-500 hover:border-violet-700/60 hover:text-violet-400 active:scale-[0.98] transition-all text-sm"
+                  >
+                    <PlusIcon /> Adicionar fase manualmente
+                  </motion.button>
+                ) : (
+                  <motion.form
+                    key="add-form"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.15 }}
+                    onSubmit={handleAddLevel}
+                    className="flex gap-2"
+                  >
+                    <input
+                      ref={addLevelInputRef}
+                      type="text"
+                      value={newLevelName}
+                      onChange={e => setNewLevelName(e.target.value)}
+                      placeholder="Nome da fase..."
+                      maxLength={100}
+                      className="flex-1 bg-[#1a1a2e] border border-violet-900/30 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newLevelName.trim() || addingLevel}
+                      className="px-4 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-600 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {addingLevel
+                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : 'Salvar'
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeAddLevel}
+                      className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <XIcon />
+                    </button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
         ) : (
           <div className="space-y-2">
             {getLevels(game).length > 0 ? (

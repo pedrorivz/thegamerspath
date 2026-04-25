@@ -6,17 +6,12 @@ interface LibraryState {
   games: LibraryGame[];
   syncing: boolean;
   syncError: string | null;
-  // Fetch library from backend
   sync: () => Promise<void>;
-  // Add game — calls backend, then updates local state
   addGame: (payload: api.AddGamePayload) => Promise<void>;
-  // Remove game — calls backend, then updates local state
   removeGame: (id: string) => Promise<void>;
-  // Toggle level — optimistic update + backend call
   toggleLevel: (gameId: string, levelId: string) => Promise<void>;
-  // Clear local state (on logout)
+  addLevel: (gameId: string, name: string) => Promise<void>;
   clear: () => void;
-  // Local-only helpers
   hasGame: (id: string) => boolean;
   getGame: (id: string) => LibraryGame | undefined;
 }
@@ -91,6 +86,17 @@ export const useLibrary = create<LibraryState>((set, get) => ({
         ),
       }));
     }
+  },
+
+  addLevel: async (gameId, name) => {
+    const level = await api.addLevel(gameId, name);
+    set(s => ({
+      games: s.games.map(g =>
+        g.id !== gameId
+          ? g
+          : { ...g, levels: [...g.levels, { id: level.id, name: level.name, completed: false }] }
+      ),
+    }));
   },
 
   clear: () => set({ games: [], syncError: null }),
