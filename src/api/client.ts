@@ -124,6 +124,14 @@ export async function toggleLevel(
   return res.data;
 }
 
+export async function addLevel(gameId: string, name: string): Promise<BackendLevel> {
+  const res = await request<{ data: BackendLevel }>(`/library/${gameId}/levels`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
 // Games (proxied & cached by backend)
 export async function searchGames(query: string): Promise<unknown[]> {
   const res = await request<{ data: unknown[] }>(

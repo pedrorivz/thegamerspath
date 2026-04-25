@@ -170,4 +170,49 @@ router.patch('/:gameId/level', (req, res) => {
   });
 });
 
+// POST /api/library/:gameId/levels  — add a manual level
+router.post('/:gameId/levels', (req, res) => {
+  const userId = req.user!.userId;
+  const { gameId } = req.params;
+  const { name } = req.body as { name: string };
+
+  if (!name || !name.trim()) {
+    res.status(400).json({ error: 'Nome da fase é obrigatório' });
+    return;
+  }
+
+  if (name.trim().length > 100) {
+    res.status(400).json({ error: 'Nome deve ter no máximo 100 caracteres' });
+    return;
+  }
+
+  const game = db
+    .prepare('SELECT id FROM library_games WHERE id = ? AND user_id = ?')
+    .get(gameId, userId);
+
+  if (!game) {
+    res.status(404).json({ error: 'Jogo não encontrado' });
+    return;
+  }
+
+  const levelId = randomUUID();
+  db.prepare(
+    'INSERT INTO library_levels (id, game_id, speedrun_level_id, name) VALUES (?, ?, ?, ?)'
+  ).run(levelId, gameId, levelId, name.trim());
+
+  const level = db
+    .prepare('SELECT * FROM library_levels WHERE id = ?')
+    .get(levelId) as LibraryLevel;
+
+  res.status(201).json({
+    data: {
+      id: level.id,
+      speedrunLevelId: level.speedrun_level_id,
+      name: level.name,
+      completed: false,
+      completedAt: null,
+    },
+  });
+});
+
 export default router;

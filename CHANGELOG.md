@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Manual level entry on game detail page — add custom chapter/level names to any library game via an inline form
+
 ### Fixed
 
 - Library and Home page links now correctly use the Speedrun.com game ID instead of the internal backend UUID, fixing "Jogo não encontrado" when opening a game from the library
