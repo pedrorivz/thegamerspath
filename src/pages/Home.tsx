@@ -129,7 +129,7 @@ export function Home() {
                     transition={{ delay: 0.22 + index * 0.06 }}
                   >
                     <Link
-                      to={`/game/${game.id}`}
+                      to={`/game/${game.speedrunId}`}
                       className="flex gap-3 p-3 rounded-xl bg-[#1a1a2e] border border-violet-900/20 card-glow block"
                     >
                       <div className="w-12 h-16 flex-shrink-0 rounded-lg overflow-hidden">
