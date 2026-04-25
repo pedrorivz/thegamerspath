@@ -148,11 +148,12 @@ Quick version:
 Open to contributions on any of these:
 
 - [ ] Manual game entry (games not in Speedrun.com)
-- [ ] Notes / journal per game
-- [ ] Import/export library as JSON
+- [x] Manual level entry (games that levels not in Speedrun.com)
+- [x] Notes / journal per game
+- [x] Import/export library as JSON
 - [ ] Backlog / wishlist list type
 - [ ] Statistics page (completion rate, streaks)
-- [ ] Dark / light theme toggle
+- [ ] Dark / custom colors theme toggle
 - [ ] Internationalization (i18n)
 
 Have an idea? [Open a feature request](https://github.com/pedrorivz/thegamerspath/issues/new?template=feature_request.yml).
