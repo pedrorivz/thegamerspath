@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Check the [roadmap in README](../../README.md#roadmap) and [open issues](../../issues) first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or friction point.
+      placeholder: "I often forget which games I want to play next. There's no way to mark a game as 'backlog'."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work?
+      placeholder: "A 'Backlog' tab in the library, separate from active games."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you thought about?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend / UI
+        - Backend / API
+        - Docker / deployment
+        - Game data / Speedrun.com integration
+        - Documentation
+        - Other
+    validations:
+      required: true
