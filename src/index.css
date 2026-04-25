@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #0f0f1a;
+    color: #e2e8f0;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100dvh;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.85); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes check-draw {
+  0% { stroke-dashoffset: 20; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes slide-up-fade {
+  0% { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes progress-fill {
+  0% { width: 0%; }
+}
+
+@layer utilities {
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .glass {
+    background: rgba(26, 26, 46, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #a78bfa, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .card-glow {
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .card-glow:hover {
+    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.3), 0 8px 32px rgba(124, 58, 237, 0.25);
+  }
+  .card-glow:active {
+    transform: scale(0.985);
+  }
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #1a1a2e 25%,
+      #24243e 50%,
+      #1a1a2e 75%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  .animate-pop-in {
+    animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .animate-slide-up {
+    animation: slide-up-fade 0.25s ease forwards;
+  }
+  .check-draw {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    animation: check-draw 0.35s ease forwards;
+  }
+  .progress-bar-animated {
+    animation: progress-fill 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
