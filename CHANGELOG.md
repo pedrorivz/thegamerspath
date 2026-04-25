@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] — 2026-04-25
+
 ### Added
 
 - Manual level entry on game detail page — add custom chapter/level names to any library game via an inline form
@@ -45,4 +49,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Makefile** — `make up`, `make down`, `make dev-all`, `make logs`, `make clean`
 - **GitHub templates** — bug report, feature request, pull request template
 
+[1.1.0]: https://github.com/pedrorivz/thegamerspath/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/pedrorivz/thegamerspath/releases/tag/v1.0.0
