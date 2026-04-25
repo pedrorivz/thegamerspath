@@ -75,7 +75,7 @@ export function Library() {
                   transition={{ delay: index * 0.03, duration: 0.22 }}
                 >
                   <Link
-                    to={`/game/${game.id}`}
+                    to={`/game/${game.speedrunId}`}
                     className="flex gap-3 p-3 rounded-xl bg-[#1a1a2e] border border-violet-900/20 card-glow block"
                   >
                     <div className="w-16 h-20 flex-shrink-0 rounded-lg overflow-hidden">

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- Library and Home page links now correctly use the Speedrun.com game ID instead of the internal backend UUID, fixing "Jogo não encontrado" when opening a game from the library
+
+---
+
 ## [1.0.0] — 2026-04-25
 
 ### Added
