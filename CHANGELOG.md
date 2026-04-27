@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Game detail page now shows library data (name, cover, level tracker) instead of "Jogo não encontrado" when a game's Speedrun.com ID is not found on the API — preserves progress tracking for all library entries
+
 ### Added
 
 - Ollama integration for local AI-powered chapter extraction — when a game has no levels in the Speedrun.com API, enabling this feature will automatically search the web (DuckDuckGo) for walkthroughs, extract headings/lists from the results, and use a local LLM (via Ollama) to structure them into an ordered chapter list

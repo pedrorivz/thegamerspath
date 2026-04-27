@@ -35,6 +35,7 @@ COPY server/server.ts          ./server/server.ts
 COPY server/db.ts              ./server/db.ts
 COPY server/auth.ts            ./server/auth.ts
 COPY server/types.ts           ./server/types.ts
+COPY server/ollama.ts          ./server/ollama.ts
 COPY server/middleware         ./server/middleware
 COPY server/routes             ./server/routes
 

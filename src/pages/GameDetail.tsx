@@ -9,7 +9,35 @@ import { LevelTracker } from '../components/LevelTracker';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { SkeletonDetailHero, SkeletonLevel } from '../components/SkeletonCard';
 import { toast } from '../components/Toast';
-import type { SpeedrunGame } from '../types/speedrun';
+import type { SpeedrunGame, LibraryGame } from '../types/speedrun';
+
+function synthSpeedrunGame(entry: LibraryGame): SpeedrunGame {
+  const nullAsset = { uri: null };
+  return {
+    id: entry.speedrunId,
+    names: { international: entry.name },
+    abbreviation: entry.abbreviation,
+    weblink: '',
+    released: entry.released,
+    'release-date': String(entry.released),
+    assets: {
+      logo: nullAsset,
+      'cover-tiny': nullAsset,
+      'cover-small': nullAsset,
+      'cover-medium': { uri: entry.coverUrl },
+      'cover-large': { uri: entry.coverUrl },
+      icon: nullAsset,
+      'trophy-1st': nullAsset,
+      'trophy-2nd': nullAsset,
+      'trophy-3rd': nullAsset,
+      'trophy-4th': nullAsset,
+      background: nullAsset,
+      foreground: nullAsset,
+    },
+    platforms: entry.platforms,
+    genres: entry.genres,
+  };
+}
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -50,6 +78,7 @@ export function GameDetail() {
   const { settings } = useSettings();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
+  const displayGame = game ?? (inLibrary && libraryEntry ? synthSpeedrunGame(libraryEntry) : null);
 
   const [showAddLevel, setShowAddLevel] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
@@ -135,7 +164,7 @@ export function GameDetail() {
     setShowConfirm(false);
     try {
       await removeGame(libraryEntry.id);
-      toast.info(`${game?.names.international ?? 'Jogo'} removido da biblioteca`);
+      toast.info(`${libraryEntry.name} removido da biblioteca`);
     } catch {
       setActionError('Erro ao remover jogo');
       toast.error('Não foi possível remover o jogo');
@@ -260,7 +289,7 @@ export function GameDetail() {
     );
   }
 
-  if (!game) {
+  if (!displayGame) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center px-4 text-center">
         <p className="text-slate-400 mb-4">Jogo não encontrado.</p>
@@ -269,9 +298,9 @@ export function GameDetail() {
     );
   }
 
-  const cover = getCoverUrl(game);
-  const platforms = getPlatformNames(game);
-  const genres = getGenreNames(game);
+  const cover = getCoverUrl(displayGame);
+  const platforms = getPlatformNames(displayGame);
+  const genres = getGenreNames(displayGame);
   const levels = inLibrary && libraryEntry ? libraryEntry.levels : [];
 
   return (
@@ -296,7 +325,7 @@ export function GameDetail() {
           <div className="w-28 h-36 flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a2e] shadow-lg shadow-black/50">
             <OptimizedImage
               src={cover}
-              alt={game.names.international}
+              alt={displayGame.names.international}
               fallback={
                 <div className="w-full h-full flex items-center justify-center bg-[#1a1a2e] text-slate-600">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
@@ -310,10 +339,10 @@ export function GameDetail() {
           <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
             <div>
               <h1 className="text-lg font-bold text-slate-100 leading-tight">
-                {game.names.international}
+                {displayGame.names.international}
               </h1>
-              {game.released > 0 && (
-                <p className="text-sm text-slate-500 mt-0.5">{game.released}</p>
+              {displayGame.released > 0 && (
+                <p className="text-sm text-slate-500 mt-0.5">{displayGame.released}</p>
               )}
             </div>
             {platforms.length > 0 && (
@@ -526,8 +555,8 @@ export function GameDetail() {
           </>
         ) : (
           <div className="space-y-2">
-            {getLevels(game).length > 0 ? (
-              getLevels(game).map((level, i) => (
+            {getLevels(displayGame).length > 0 ? (
+              getLevels(displayGame).map((level, i) => (
                 <div key={level.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a2e] border border-slate-800">
                   <span className="text-xs text-slate-600 w-5">{i + 1}</span>
                   <span className="text-sm text-slate-400">{level.name}</span>
@@ -536,7 +565,7 @@ export function GameDetail() {
             ) : (
               <p className="text-slate-600 text-sm text-center py-4">Nenhuma fase disponível na API.</p>
             )}
-            {getLevels(game).length > 0 && (
+            {getLevels(displayGame).length > 0 && (
               <p className="text-xs text-slate-600 text-center pt-2">Adicione à biblioteca para rastrear o progresso</p>
             )}
           </div>
@@ -696,7 +725,7 @@ export function GameDetail() {
             >
               <h3 className="text-base font-bold text-slate-100 mb-2">Remover da biblioteca?</h3>
               <p className="text-sm text-slate-500 mb-6">
-                Todo o progresso de "{game.names.international}" será perdido.
+                Todo o progresso de "{displayGame.names.international}" será perdido.
               </p>
               <div className="flex gap-3">
                 <button
