@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useLibrary } from '../store/library';
+import { useSettings } from '../hooks/useSettings';
 import * as api from '../api/client';
 import { toast } from '../components/Toast';
 
@@ -40,6 +41,7 @@ export function Profile() {
   const { user, logout } = useAuth();
   const { clear, sync } = useLibrary();
   const games = useLibrary(s => s.games);
+  const { settings, setUseOllama } = useSettings();
   const navigate = useNavigate();
 
   const [exporting, setExporting] = useState(false);
@@ -172,6 +174,29 @@ export function Profile() {
             <p className="text-xs text-slate-500 mt-1.5">{completedLevels} de {totalLevels} fases</p>
           </div>
         )}
+
+        {/* Settings */}
+        <div className="mb-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3 px-1">Configurações</p>
+          <button
+            onClick={() => setUseOllama(!settings.useOllama)}
+            className="w-full flex items-center gap-3 p-4 rounded-xl bg-[#1a1a2e] border border-slate-800 text-slate-300 hover:border-violet-700/50 active:scale-[0.98] transition-all"
+          >
+            <div
+              className={`w-11 h-6 flex-shrink-0 rounded-full transition-colors duration-200 ${settings.useOllama ? 'bg-violet-600' : 'bg-slate-700'}`}
+            >
+              <div
+                className={`w-5 h-5 mt-0.5 rounded-full bg-white shadow transition-transform duration-200 ${settings.useOllama ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+              />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-sm">Busca de capítulos (Ollama)</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Usa IA local para extrair capítulos de jogos sem fases na API
+              </p>
+            </div>
+          </button>
+        </div>
 
         {/* Backup */}
         <div className="mb-4">

@@ -76,6 +76,7 @@ export interface LibraryGame {
   genres: string[];
   levels: LibraryLevel[];
   notes: LibraryNote[];
+  ollamaStatus: string | null;
   addedAt: number;
 }
 

@@ -4,13 +4,17 @@ import cors from 'cors';
 import path from 'path';
 import Redis from 'ioredis';
 import authRouter from './routes/auth';
-import libraryRouter from './routes/library';
+import { createLibraryRouter } from './routes/library';
 import { createGamesRouter } from './routes/games';
 import backupRouter from './routes/backup';
+import { initOllama } from './ollama';
+import type { OllamaClient } from './ollama';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const REDIS_URL = process.env.REDIS_URL;
+const OLLAMA_URL = process.env.OLLAMA_URL;
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Redis (optional — gracefully degrades if not available)
@@ -25,6 +29,20 @@ if (REDIS_URL) {
   console.log('[Redis] REDIS_URL não configurada. Cache desativado.');
 }
 
+// Ollama (optional — gracefully degrades if not available)
+let ollama: OllamaClient | null = null;
+if (OLLAMA_URL) {
+  initOllama(OLLAMA_URL, OLLAMA_MODEL).then(client => {
+    if (client) {
+      ollama = client;
+    } else {
+      console.warn('[Ollama] Não foi possível conectar. Busca de capítulos desativada.');
+    }
+  });
+} else {
+  console.log('[Ollama] OLLAMA_URL não configurada. Busca de capítulos desativada.');
+}
+
 // Middleware
 app.use(cors({
   origin: IS_PROD ? false : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
@@ -34,13 +52,13 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRouter);
-app.use('/api/library', libraryRouter);
+app.use('/api/library', createLibraryRouter(() => ollama));
 app.use('/api/games', createGamesRouter(redis));
 app.use('/api/backup', backupRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', redis: redis !== null, timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', redis: redis !== null, ollama: ollama !== null, timestamp: new Date().toISOString() });
 });
 
 // Serve frontend in production
@@ -56,5 +74,6 @@ app.listen(PORT, () => {
   console.log(`\n🎮 The Gamer's Path server rodando em http://localhost:${PORT}`);
   console.log(`📦 Ambiente: ${IS_PROD ? 'production' : 'development'}`);
   console.log(`🗃️  SQLite: ${process.env.DATA_DIR || path.join(__dirname, 'data')}/tgp.db`);
-  console.log(`⚡ Redis: ${redis ? 'conectado' : 'desativado'}\n`);
+  console.log(`⚡ Redis: ${redis ? 'conectado' : 'desativado'}`);
+  console.log(`🤖 Ollama: ${OLLAMA_URL ? 'inicializando...' : 'desativado'}\n`);
 });

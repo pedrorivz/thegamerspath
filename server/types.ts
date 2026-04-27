@@ -16,6 +16,12 @@ export interface LibraryGame {
   platforms: string;
   genres: string;
   added_at: string;
+  ollama_status: string | null;
+}
+
+export interface OllamaChapter {
+  name: string;
+  order: number;
 }
 
 export interface LibraryLevel {
@@ -36,6 +42,7 @@ export interface AddGameBody {
   platforms?: string[];
   genres?: string[];
   levels: { id: string; name: string }[];
+  useOllama?: boolean;
 }
 
 export interface GameNote {

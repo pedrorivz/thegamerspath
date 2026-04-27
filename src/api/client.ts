@@ -36,6 +36,7 @@ export interface BackendGame {
   genres: string[];
   levels: BackendLevel[];
   notes: BackendNote[];
+  ollamaStatus: string | null;
   addedAt: string;
 }
 
@@ -48,6 +49,7 @@ export interface AddGamePayload {
   platforms?: string[];
   genres?: string[];
   levels: { id: string; name: string }[];
+  useOllama?: boolean;
 }
 
 class APIError extends Error {
@@ -182,6 +184,15 @@ export async function deleteNote(gameId: string, noteId: string): Promise<void> 
   await request(`/library/${gameId}/notes/${noteId}`, { method: 'DELETE' });
 }
 
+export async function getGameStatus(
+  gameId: string,
+): Promise<{ ollamaStatus: string | null; levelsCount: number }> {
+  const res = await request<{ data: { ollamaStatus: string | null; levelsCount: number } }>(
+    `/library/${gameId}/status`,
+  );
+  return res.data;
+}
+
 // Backup endpoints
 export async function exportBackup(): Promise<Blob> {
   const token = localStorage.getItem('tgp-token');
@@ -222,6 +233,7 @@ export function backendToLibrary(bg: BackendGame): LibraryGame {
       createdAt: n.createdAt,
       updatedAt: n.updatedAt,
     })),
+    ollamaStatus: bg.ollamaStatus ?? null,
     addedAt: new Date(bg.addedAt).getTime(),
   };
 }

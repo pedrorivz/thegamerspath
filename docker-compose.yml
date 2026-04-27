@@ -11,6 +11,9 @@ services:
       REDIS_URL: redis://redis:6379
       DATA_DIR: /app/server/data
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-before-production}
+      # Optional: set OLLAMA_URL to enable local AI chapter extraction
+      # OLLAMA_URL: http://host.docker.internal:11434
+      # OLLAMA_MODEL: llama3.2
     volumes:
       - sqlite-data:/app/server/data
     depends_on:

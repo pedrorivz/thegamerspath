@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getCoverUrl, getPlatformNames, getGenreNames, getLevels } from '../api/speedrun';
 import * as backendApi from '../api/client';
 import { useLibrary } from '../store/library';
+import { useSettings } from '../hooks/useSettings';
 import { LevelTracker } from '../components/LevelTracker';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { SkeletonDetailHero, SkeletonLevel } from '../components/SkeletonCard';
@@ -45,7 +46,8 @@ export function GameDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels, addNote, updateNote, deleteNote } = useLibrary();
+  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels, addNote, updateNote, deleteNote, sync } = useLibrary();
+  const { settings } = useSettings();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
 
@@ -62,6 +64,7 @@ export function GameDetail() {
   const [savingNote, setSavingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -72,11 +75,37 @@ export function GameDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Poll for Ollama chapter extraction completion
+  useEffect(() => {
+    if (!libraryEntry || libraryEntry.ollamaStatus !== 'processing') return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const status = await backendApi.getGameStatus(libraryEntry.id);
+        if (status.ollamaStatus !== 'processing') {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          await sync();
+          if (status.ollamaStatus === 'done') {
+            toast.success(`${status.levelsCount} capítulo(s) extraídos pelo Ollama`);
+          } else {
+            toast.info('Ollama não encontrou capítulos para este jogo.');
+          }
+        }
+      } catch { /* ignore poll errors */ }
+    }, 5000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [libraryEntry?.ollamaStatus, libraryEntry?.id, sync]);
+
   const handleAdd = async () => {
     if (!game || !id) return;
     setAdding(true);
     setActionError('');
     try {
+      const levels = getLevels(game).map(l => ({ id: l.id, name: l.name }));
+      const useOllama = levels.length === 0 && settings.useOllama;
       await addGame({
         speedrun_id: id,
         name: game.names.international,
@@ -85,9 +114,14 @@ export function GameDetail() {
         released: game.released,
         platforms: getPlatformNames(game),
         genres: getGenreNames(game),
-        levels: getLevels(game).map(l => ({ id: l.id, name: l.name })),
+        levels,
+        useOllama,
       });
-      toast.info(`🎮 ${game.names.international} adicionado à biblioteca`);
+      if (useOllama) {
+        toast.info(`🤖 Extraindo capítulos de "${game.names.international}" via Ollama...`);
+      } else {
+        toast.info(`🎮 ${game.names.international} adicionado à biblioteca`);
+      }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Erro ao adicionar jogo');
       toast.error('Não foi possível adicionar o jogo');
@@ -341,6 +375,38 @@ export function GameDetail() {
 
         {inLibrary ? (
           <>
+            <AnimatePresence>
+              {libraryEntry?.ollamaStatus === 'processing' && (
+                <motion.div
+                  key="ollama-banner"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-violet-900/20 border border-violet-700/40"
+                >
+                  <div className="w-4 h-4 flex-shrink-0 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                  <p className="text-sm text-violet-300">
+                    Ollama está buscando capítulos na web…
+                  </p>
+                </motion.div>
+              )}
+              {libraryEntry?.ollamaStatus === 'failed' && levels.length === 0 && (
+                <motion.div
+                  key="ollama-failed"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-amber-900/20 border border-amber-700/40"
+                >
+                  <p className="text-sm text-amber-400">
+                    Ollama não encontrou capítulos. Você pode adicioná-los manualmente.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <LevelTracker gameId={libraryEntry!.id} levels={levels} />
 
             <div className="mt-4">

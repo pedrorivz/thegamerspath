@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Ollama integration for local AI-powered chapter extraction — when a game has no levels in the Speedrun.com API, enabling this feature will automatically search the web (DuckDuckGo) for walkthroughs, extract headings/lists from the results, and use a local LLM (via Ollama) to structure them into an ordered chapter list
+- Settings toggle in Profile page to enable/disable Ollama chapter search; preference is persisted in localStorage
+- Processing banner in GameDetail page that shows a spinner while Ollama extracts chapters, with polling every 5 seconds and automatic library sync on completion
+- New `GET /api/library/:gameId/status` endpoint to check Ollama extraction progress
+- `OLLAMA_URL` and `OLLAMA_MODEL` environment variables; Ollama is optional and follows the same graceful-degradation pattern as Redis (disabled if `OLLAMA_URL` is unset)
+- `ollama_status` column added to `library_games` table via safe migration (values: `null`, `processing`, `done`, `failed`)
+
 ---
 
 ## [1.1.0] — 2026-04-25
