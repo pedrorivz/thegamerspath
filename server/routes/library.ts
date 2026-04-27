@@ -115,6 +115,37 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
     res.json({ data: { ollamaStatus: game.ollama_status ?? null, levelsCount: count } });
   });
 
+  // POST /api/library/:gameId/ollama — trigger Ollama extraction for existing game
+  router.post('/:gameId/ollama', (req, res) => {
+    const userId = req.user!.userId;
+    const { gameId } = req.params;
+
+    const ollama = getOllama();
+    if (!ollama) {
+      res.status(503).json({ error: 'Ollama não está disponível no servidor' });
+      return;
+    }
+
+    const game = db
+      .prepare('SELECT * FROM library_games WHERE id = ? AND user_id = ?')
+      .get(gameId, userId) as LibraryGame | undefined;
+
+    if (!game) {
+      res.status(404).json({ error: 'Jogo não encontrado na biblioteca' });
+      return;
+    }
+
+    if (game.ollama_status === 'processing') {
+      res.status(409).json({ error: 'Extração já está em andamento' });
+      return;
+    }
+
+    db.prepare("UPDATE library_games SET ollama_status = 'processing' WHERE id = ?").run(gameId);
+    processOllamaChapters(gameId, game.name, ollama).catch(() => {});
+
+    res.status(202).json({ data: { ollamaStatus: 'processing' } });
+  });
+
   // POST /api/library
   router.post('/', (req, res) => {
     const userId = req.user!.userId;

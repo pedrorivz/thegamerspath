@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCoverUrl, getPlatformNames, getGenreNames, getLevels } from '../api/speedrun';
 import * as backendApi from '../api/client';
+import { getOllamaHealth, triggerOllama } from '../api/client';
 import { useLibrary } from '../store/library';
 import { useSettings } from '../hooks/useSettings';
 import { LevelTracker } from '../components/LevelTracker';
@@ -74,7 +75,7 @@ export function GameDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels, addNote, updateNote, deleteNote, sync } = useLibrary();
+  const { addGame, removeGame, hasGame, getGame: getLibraryGame, addLevel, addLevels, addNote, updateNote, deleteNote, sync, setOllamaStatus } = useLibrary();
   const { settings } = useSettings();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
@@ -93,6 +94,8 @@ export function GameDetail() {
   const [savingNote, setSavingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [ollamaOnline, setOllamaOnline] = useState<boolean | null>(null);
+  const [triggeringOllama, setTriggeringOllama] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -103,6 +106,10 @@ export function GameDetail() {
       .catch(() => setGame(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    getOllamaHealth().then(setOllamaOnline);
+  }, []);
 
   // Poll for Ollama chapter extraction completion
   useEffect(() => {
@@ -168,6 +175,20 @@ export function GameDetail() {
     } catch {
       setActionError('Erro ao remover jogo');
       toast.error('Não foi possível remover o jogo');
+    }
+  };
+
+  const handleTriggerOllama = async () => {
+    if (!libraryEntry) return;
+    setTriggeringOllama(true);
+    try {
+      await triggerOllama(libraryEntry.id);
+      setOllamaStatus(libraryEntry.id, 'processing');
+      toast.info(`🤖 Buscando capítulos de "${libraryEntry.name}" via Ollama...`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao iniciar Ollama');
+    } finally {
+      setTriggeringOllama(false);
     }
   };
 
@@ -437,6 +458,39 @@ export function GameDetail() {
             </AnimatePresence>
 
             <LevelTracker gameId={libraryEntry!.id} levels={levels} />
+
+            {/* Ollama import button — visible when no levels and not already processing */}
+            <AnimatePresence>
+              {levels.length === 0 && libraryEntry?.ollamaStatus !== 'processing' && (
+                <motion.div
+                  key="ollama-trigger"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-4"
+                >
+                  <button
+                    onClick={handleTriggerOllama}
+                    disabled={triggeringOllama || ollamaOnline === false}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-900/20 border border-violet-700/30 text-violet-300 hover:bg-violet-900/40 hover:border-violet-600/50 active:scale-[0.98] transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {triggeringOllama ? (
+                      <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                      </svg>
+                    )}
+                    Buscar capítulos com Ollama
+                    <span className={`ml-auto flex items-center gap-1 text-xs font-normal ${ollamaOnline === null ? 'text-slate-500' : ollamaOnline ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${ollamaOnline === null ? 'bg-slate-600' : ollamaOnline ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                      {ollamaOnline === null ? 'verificando…' : ollamaOnline ? 'online' : 'offline'}
+                    </span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="mt-4">
               <AnimatePresence mode="wait">

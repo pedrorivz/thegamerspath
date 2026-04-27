@@ -193,6 +193,21 @@ export async function getGameStatus(
   return res.data;
 }
 
+export async function triggerOllama(gameId: string): Promise<void> {
+  await request(`/library/${gameId}/ollama`, { method: 'POST' });
+}
+
+export async function getOllamaHealth(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/health');
+    if (!res.ok) return false;
+    const json = await res.json() as { ollama?: boolean };
+    return json.ollama === true;
+  } catch {
+    return false;
+  }
+}
+
 // Backup endpoints
 export async function exportBackup(): Promise<Blob> {
   const token = localStorage.getItem('tgp-token');

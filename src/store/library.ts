@@ -15,6 +15,7 @@ interface LibraryState {
   addNote: (gameId: string, content: string) => Promise<void>;
   updateNote: (gameId: string, noteId: string, content: string) => Promise<void>;
   deleteNote: (gameId: string, noteId: string) => Promise<void>;
+  setOllamaStatus: (gameId: string, status: string) => void;
   clear: () => void;
   hasGame: (id: string) => boolean;
   getGame: (id: string) => LibraryGame | undefined;
@@ -161,6 +162,12 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       get().sync();
       throw new Error('Não foi possível remover a nota');
     }
+  },
+
+  setOllamaStatus: (gameId, status) => {
+    set(s => ({
+      games: s.games.map(g => g.id === gameId ? { ...g, ollamaStatus: status } : g),
+    }));
   },
 
   clear: () => set({ games: [], syncError: null }),

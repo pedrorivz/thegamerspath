@@ -12,9 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Game detail page now shows library data (name, cover, level tracker) instead of "Jogo não encontrado" when a game's Speedrun.com ID is not found on the API — preserves progress tracking for all library entries
+- Library page links now use `speedrunId` instead of backend UUID, fixing navigation from library to game detail (broken in the built image)
+- Dockerfile now copies `server/ollama.ts`, fixing container startup crash introduced with the Ollama integration
 
 ### Added
 
+- Manual Ollama chapter import button on the game detail page: for library games with no levels, a "Buscar capítulos com Ollama" button appears with a real-time online/offline indicator; triggers the same extraction flow as auto-import without requiring the game to be re-added
 - Ollama integration for local AI-powered chapter extraction — when a game has no levels in the Speedrun.com API, enabling this feature will automatically search the web (DuckDuckGo) for walkthroughs, extract headings/lists from the results, and use a local LLM (via Ollama) to structure them into an ordered chapter list
 - Settings toggle in Profile page to enable/disable Ollama chapter search; preference is persisted in localStorage
 - Processing banner in GameDetail page that shows a spinner while Ollama extracts chapters, with polling every 5 seconds and automatic library sync on completion
