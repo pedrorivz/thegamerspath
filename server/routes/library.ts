@@ -34,6 +34,7 @@ function formatGame(game: LibraryGame, levels: LibraryLevel[], notes: GameNote[]
     })),
     notes: notes.map(formatNote),
     ollamaStatus: game.ollama_status ?? null,
+    isCustom: game.is_custom === 1,
     addedAt: game.added_at,
   };
 }
@@ -140,7 +141,7 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
       return;
     }
 
-    db.prepare("UPDATE library_games SET ollama_status = 'processing' WHERE id = ?").run(gameId);
+    db.prepare("UPDATE library_games SET ollama_status = 'processing' WHERE id = ? AND user_id = ?").run(gameId, userId);
     processOllamaChapters(gameId, game.name, ollama).catch(() => {});
 
     res.status(202).json({ data: { ollamaStatus: 'processing' } });
@@ -151,17 +152,75 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
     const userId = req.user!.userId;
     const body = req.body as AddGameBody;
 
-    if (!body.speedrun_id || !body.name || !Array.isArray(body.levels)) {
-      res.status(400).json({ error: 'speedrun_id, name e levels são obrigatórios' });
+    const isCustom = body.is_custom === true;
+
+    if (!body.name?.trim() || !Array.isArray(body.levels)) {
+      res.status(400).json({ error: 'name e levels são obrigatórios' });
+      return;
+    }
+    if (!isCustom && !body.speedrun_id) {
+      res.status(400).json({ error: 'speedrun_id é obrigatório para jogos da Speedrun.com' });
       return;
     }
 
-    const existing = db
-      .prepare('SELECT id FROM library_games WHERE user_id = ? AND speedrun_id = ?')
-      .get(userId, body.speedrun_id);
-    if (existing) {
-      res.status(409).json({ error: 'Jogo já está na biblioteca' });
+    const trimmedName = body.name.trim();
+    if (trimmedName.length > 120) {
+      res.status(400).json({ error: 'Nome deve ter no máximo 120 caracteres' });
       return;
+    }
+    if (body.cover_url) {
+      if (body.cover_url.length > 500) {
+        res.status(400).json({ error: 'URL da capa deve ter no máximo 500 caracteres' });
+        return;
+      }
+      if (!/^https?:\/\//i.test(body.cover_url)) {
+        res.status(400).json({ error: 'URL da capa deve começar com http:// ou https://' });
+        return;
+      }
+    }
+    if (body.abbreviation && body.abbreviation.length > 20) {
+      res.status(400).json({ error: 'Abreviação deve ter no máximo 20 caracteres' });
+      return;
+    }
+    if (body.platforms && (
+      body.platforms.length > 10 ||
+      body.platforms.some(p => typeof p !== 'string' || p.length > 40)
+    )) {
+      res.status(400).json({ error: 'Máximo de 10 plataformas, cada uma com até 40 caracteres' });
+      return;
+    }
+    if (body.genres && (
+      body.genres.length > 10 ||
+      body.genres.some(g => typeof g !== 'string' || g.length > 40)
+    )) {
+      res.status(400).json({ error: 'Máximo de 10 gêneros, cada um com até 40 caracteres' });
+      return;
+    }
+    if (body.levels.length > 500) {
+      res.status(400).json({ error: 'Máximo de 500 fases permitidas' });
+      return;
+    }
+    if (body.levels.some(l => !l.name || l.name.trim().length === 0 || l.name.length > 100)) {
+      res.status(400).json({ error: 'Cada fase deve ter nome com no máximo 100 caracteres' });
+      return;
+    }
+    const CURRENT_YEAR = new Date().getFullYear();
+    if (body.released && body.released !== 0 && (body.released < 1970 || body.released > CURRENT_YEAR + 5)) {
+      res.status(400).json({ error: `Ano de lançamento deve estar entre 1970 e ${CURRENT_YEAR + 5}` });
+      return;
+    }
+
+    const speedrunId = isCustom ? `manual_${randomUUID()}` : body.speedrun_id!;
+
+    // Duplicate check only applies to Speedrun.com games (custom games always get a unique ID)
+    if (!isCustom) {
+      const existing = db
+        .prepare('SELECT id FROM library_games WHERE user_id = ? AND speedrun_id = ?')
+        .get(userId, speedrunId);
+      if (existing) {
+        res.status(409).json({ error: 'Jogo já está na biblioteca' });
+        return;
+      }
     }
 
     const ollama = getOllama();
@@ -170,8 +229,8 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
 
     const gameId = randomUUID();
     const insertGame = db.prepare(`
-      INSERT INTO library_games (id, user_id, speedrun_id, name, cover_url, abbreviation, released, platforms, genres, ollama_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO library_games (id, user_id, speedrun_id, name, cover_url, abbreviation, released, platforms, genres, ollama_status, is_custom)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const insertLevel = db.prepare(`
       INSERT INTO library_levels (id, game_id, speedrun_level_id, name)
@@ -182,7 +241,7 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
       insertGame.run(
         gameId,
         userId,
-        body.speedrun_id,
+        speedrunId,
         body.name,
         body.cover_url ?? null,
         body.abbreviation ?? '',
@@ -190,6 +249,7 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
         JSON.stringify(body.platforms ?? []),
         JSON.stringify(body.genres ?? []),
         ollamaStatus,
+        isCustom ? 1 : 0,
       );
       if (!useOllamaMode) {
         for (const level of body.levels) {
@@ -225,7 +285,7 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
       return;
     }
 
-    db.prepare('DELETE FROM library_games WHERE id = ?').run(gameId);
+    db.prepare('DELETE FROM library_games WHERE id = ? AND user_id = ?').run(gameId, userId);
     res.status(204).send();
   });
 
@@ -262,8 +322,8 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
     const completedAt = nowCompleted === 1 ? new Date().toISOString() : null;
 
     db.prepare(
-      'UPDATE library_levels SET completed = ?, completed_at = ? WHERE id = ?',
-    ).run(nowCompleted, completedAt, levelId);
+      'UPDATE library_levels SET completed = ?, completed_at = ? WHERE id = ? AND game_id = ?',
+    ).run(nowCompleted, completedAt, levelId, gameId);
 
     const updated = db
       .prepare('SELECT * FROM library_levels WHERE id = ?')
@@ -380,8 +440,8 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
     }
 
     db.prepare(
-      "UPDATE game_notes SET content = ?, updated_at = datetime('now') WHERE id = ?",
-    ).run(content.trim(), noteId);
+      "UPDATE game_notes SET content = ?, updated_at = datetime('now') WHERE id = ? AND game_id = ?",
+    ).run(content.trim(), noteId, gameId);
 
     const updated = db.prepare('SELECT * FROM game_notes WHERE id = ?').get(noteId) as GameNote;
     res.json({ data: formatNote(updated) });
@@ -408,7 +468,7 @@ export function createLibraryRouter(getOllama: () => OllamaClient | null) {
       return;
     }
 
-    db.prepare('DELETE FROM game_notes WHERE id = ?').run(noteId);
+    db.prepare('DELETE FROM game_notes WHERE id = ? AND game_id = ?').run(noteId, gameId);
     res.status(204).send();
   });
 

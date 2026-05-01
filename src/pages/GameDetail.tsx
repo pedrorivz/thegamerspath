@@ -69,8 +69,9 @@ const XIcon = () => (
 export function GameDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isManualGame = id?.startsWith('manual_') ?? false;
   const [game, setGame] = useState<SpeedrunGame | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isManualGame);
   const [adding, setAdding] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -79,7 +80,9 @@ export function GameDetail() {
   const { settings } = useSettings();
   const inLibrary = id ? hasGame(id) : false;
   const libraryEntry = id ? getLibraryGame(id) : undefined;
-  const displayGame = game ?? (inLibrary && libraryEntry ? synthSpeedrunGame(libraryEntry) : null);
+  const displayGame = (isManualGame && libraryEntry)
+    ? synthSpeedrunGame(libraryEntry)
+    : (game ?? (inLibrary && libraryEntry ? synthSpeedrunGame(libraryEntry) : null));
 
   const [showAddLevel, setShowAddLevel] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
@@ -99,13 +102,13 @@ export function GameDetail() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || isManualGame) return;
     setLoading(true);
     backendApi.getGameById(id)
       .then(data => setGame(data as SpeedrunGame))
       .catch(() => setGame(null))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, isManualGame]);
 
   useEffect(() => {
     getOllamaHealth().then(setOllamaOnline);

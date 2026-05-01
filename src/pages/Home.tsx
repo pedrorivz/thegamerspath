@@ -144,7 +144,14 @@ export function Home() {
                         />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                        <p className="font-semibold text-sm text-slate-100 truncate">{game.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-sm text-slate-100 truncate">{game.name}</p>
+                          {game.isCustom && (
+                            <span className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: 'rgba(251,191,36,0.75)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                              Custom
+                            </span>
+                          )}
+                        </div>
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-xs text-slate-500">{done}/{total} fases</span>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { searchGames } from '../api/client';
 import { GameCard } from '../components/GameCard';
 import { SkeletonCard } from '../components/SkeletonCard';
+import { ManualGameForm } from '../components/ManualGameForm';
 import type { SpeedrunGame } from '../types/speedrun';
 
 const SearchIcon = () => (
@@ -17,12 +18,50 @@ const XIcon = () => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+const PlusCircleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="16" />
+    <line x1="8" y1="12" x2="16" y2="12" />
+  </svg>
+);
+
+function ManualCTA({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      onClick={onClick}
+      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all active:scale-[0.98]"
+      style={{
+        border: '1px dashed rgba(124,58,237,0.4)',
+        color: '#a78bfa',
+        background: 'transparent',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(124,58,237,0.7)';
+        e.currentTarget.style.background = 'rgba(124,58,237,0.07)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)';
+        e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      <PlusCircleIcon />
+      Não encontrou? Adicione manualmente
+    </motion.button>
+  );
+}
 
 export function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SpeedrunGame[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,6 +89,9 @@ export function Search() {
     setSearched(false);
     inputRef.current?.focus();
   };
+
+  const openManual = () => setShowManualForm(true);
+  const closeManual = () => setShowManualForm(false);
 
   return (
     <div className="min-h-dvh pb-24">
@@ -109,10 +151,13 @@ export function Search() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-12"
+            className="text-center py-10"
           >
             <p className="text-slate-500 text-sm">Nenhum jogo encontrado para "{query}"</p>
-            <p className="text-slate-600 text-xs mt-1">Tente um nome diferente ou abreviação</p>
+            <p className="text-slate-600 text-xs mt-1 mb-6">Tente um nome diferente ou abreviação</p>
+            <AnimatePresence>
+              <ManualCTA key="cta-empty" onClick={openManual} />
+            </AnimatePresence>
           </motion.div>
         )}
 
@@ -130,6 +175,11 @@ export function Search() {
                 <GameCard key={game.id} game={game} index={i} />
               ))}
             </div>
+            <div className="mt-5">
+              <AnimatePresence>
+                <ManualCTA key="cta-results" onClick={openManual} />
+              </AnimatePresence>
+            </div>
           </motion.div>
         )}
 
@@ -141,6 +191,13 @@ export function Search() {
           </div>
         )}
       </div>
+
+      {/* Bottom sheet */}
+      <AnimatePresence>
+        {showManualForm && (
+          <ManualGameForm key="manual-form" onClose={closeManual} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

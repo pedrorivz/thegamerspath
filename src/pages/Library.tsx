@@ -85,9 +85,16 @@ export function Library() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div>
                         <p className="font-semibold text-sm text-slate-100 truncate">{game.name}</p>
-                        {game.released > 0 && (
-                          <p className="text-xs text-slate-500 mt-0.5">{game.released}</p>
-                        )}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {game.released > 0 && (
+                            <p className="text-xs text-slate-500">{game.released}</p>
+                          )}
+                          {game.isCustom && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: 'rgba(251,191,36,0.75)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                              Customizado
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div>

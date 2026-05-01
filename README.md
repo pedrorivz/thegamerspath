@@ -147,7 +147,7 @@ Quick version:
 
 Open to contributions on any of these:
 
-- [ ] Manual game entry (games not in Speedrun.com)
+- [x] Manual game entry (games not in Speedrun.com)
 - [x] Manual level entry (games that levels not in Speedrun.com)
 - [x] Notes / journal per game
 - [x] Import/export library as JSON
