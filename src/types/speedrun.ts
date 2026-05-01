@@ -67,7 +67,7 @@ export interface SpeedrunSearchResult {
 
 export interface LibraryGame {
   id: string;           // backend UUID
-  speedrunId: string;   // speedrun.com game ID
+  speedrunId: string;   // speedrun.com game ID or 'manual_<uuid>' for custom games
   name: string;
   coverUrl: string | null;
   abbreviation: string;
@@ -77,6 +77,7 @@ export interface LibraryGame {
   levels: LibraryLevel[];
   notes: LibraryNote[];
   ollamaStatus: string | null;
+  isCustom: boolean;
   addedAt: number;
 }
 

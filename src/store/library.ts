@@ -2,12 +2,20 @@ import { create } from 'zustand';
 import * as api from '../api/client';
 import type { LibraryGame, LibraryLevel, LibraryNote } from '../types/speedrun';
 
+export interface CustomGamePayload {
+  name: string;
+  coverUrl?: string | null;
+  released?: number;
+  platforms?: string[];
+}
+
 interface LibraryState {
   games: LibraryGame[];
   syncing: boolean;
   syncError: string | null;
   sync: () => Promise<void>;
   addGame: (payload: api.AddGamePayload) => Promise<void>;
+  addCustomGame: (payload: CustomGamePayload) => Promise<void>;
   removeGame: (id: string) => Promise<void>;
   toggleLevel: (gameId: string, levelId: string) => Promise<void>;
   addLevel: (gameId: string, name: string) => Promise<void>;
@@ -43,9 +51,37 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
 
   addGame: async (payload) => {
-    const bg = await api.addGame(payload);
-    const game = api.backendToLibrary(bg);
-    set(s => ({ games: [game, ...s.games] }));
+    try {
+      const bg = await api.addGame(payload);
+      const game = api.backendToLibrary(bg);
+      set(s => ({ games: [game, ...s.games] }));
+    } catch (err) {
+      get().sync();
+      throw err;
+    }
+  },
+
+  addCustomGame: async ({ name, coverUrl, released, platforms }) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error('Nome do jogo é obrigatório');
+
+    try {
+      const bg = await api.addGame({
+        name: trimmedName,
+        cover_url: coverUrl ?? null,
+        abbreviation: '',
+        released: released ?? 0,
+        platforms: platforms ?? [],
+        genres: [],
+        levels: [],
+        is_custom: true,
+      });
+      const game = api.backendToLibrary(bg);
+      set(s => ({ games: [game, ...s.games] }));
+    } catch (err) {
+      get().sync();
+      throw err;
+    }
   },
 
   removeGame: async (id) => {

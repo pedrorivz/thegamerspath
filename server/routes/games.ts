@@ -83,6 +83,13 @@ export function createGamesRouter(redis: Redis | null) {
   // GET /api/games/:id
   router.get('/:id', async (req, res) => {
     const { id } = req.params;
+
+    // Custom games are not in the Speedrun.com database — skip the outbound call
+    if (id.startsWith('manual_')) {
+      res.status(404).json({ error: 'Jogo customizado — sem entrada na Speedrun.com' });
+      return;
+    }
+
     const cacheKey = `game:${id}`;
 
     if (redis) {

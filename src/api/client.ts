@@ -37,11 +37,12 @@ export interface BackendGame {
   levels: BackendLevel[];
   notes: BackendNote[];
   ollamaStatus: string | null;
+  isCustom: boolean;
   addedAt: string;
 }
 
 export interface AddGamePayload {
-  speedrun_id: string;
+  speedrun_id?: string;
   name: string;
   cover_url?: string | null;
   abbreviation?: string;
@@ -50,6 +51,7 @@ export interface AddGamePayload {
   genres?: string[];
   levels: { id: string; name: string }[];
   useOllama?: boolean;
+  is_custom?: boolean;
 }
 
 class APIError extends Error {
@@ -249,6 +251,7 @@ export function backendToLibrary(bg: BackendGame): LibraryGame {
       updatedAt: n.updatedAt,
     })),
     ollamaStatus: bg.ollamaStatus ?? null,
+    isCustom: bg.isCustom ?? false,
     addedAt: new Date(bg.addedAt).getTime(),
   };
 }

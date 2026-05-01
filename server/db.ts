@@ -59,9 +59,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_game_notes_game_id ON game_notes(game_id);
 `);
 
-// Migration: add ollama_status if not present (safe to re-run)
+// Migrations — each ALTER TABLE is safe to re-run (ignored if column exists)
 try {
   db.exec('ALTER TABLE library_games ADD COLUMN ollama_status TEXT');
+} catch { /* column already exists — ignore */ }
+
+try {
+  db.exec('ALTER TABLE library_games ADD COLUMN is_custom INTEGER NOT NULL DEFAULT 0');
 } catch { /* column already exists — ignore */ }
 
 export default db;

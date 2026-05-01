@@ -17,6 +17,7 @@ export interface LibraryGame {
   genres: string;
   added_at: string;
   ollama_status: string | null;
+  is_custom: number;
 }
 
 export interface OllamaChapter {
@@ -34,7 +35,7 @@ export interface LibraryLevel {
 }
 
 export interface AddGameBody {
-  speedrun_id: string;
+  speedrun_id?: string;
   name: string;
   cover_url?: string | null;
   abbreviation?: string;
@@ -43,6 +44,7 @@ export interface AddGameBody {
   genres?: string[];
   levels: { id: string; name: string }[];
   useOllama?: boolean;
+  is_custom?: boolean;
 }
 
 export interface GameNote {
